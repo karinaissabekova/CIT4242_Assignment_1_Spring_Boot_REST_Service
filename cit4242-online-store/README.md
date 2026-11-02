@@ -1,59 +1,119 @@
 # CIT4242 Assignment 1 — Spring Boot REST Service
 
-A REST API for an online store product catalogue, built with Spring Boot 3, Maven, Spring Data JPA, Bean Validation, and PostgreSQL.
+## Project Overview
 
-## Requirements
+This project is a RESTful API for an online store product catalogue, developed as part of CIT4242 Advanced Programming at KIMEP University.
 
-- Java 17+
-- Maven 3.8+
-- PostgreSQL 14+ (or compatible)
-- Git (for submission)
+The application allows users to create, retrieve, update, delete, search, and filter products.
 
-## Database setup
+## Technologies Used
 
-Create a PostgreSQL database:
+- Java 17
+- Spring Boot 3.3.5
+- Maven
+- Spring Web
+- Spring Data JPA
+- PostgreSQL
+- Bean Validation
+
+## Project Structure
+
+```text
+com.karina.onlinestore/
+├── controller/
+│   └── ProductController.java
+├── service/
+│   └── ProductService.java
+├── repository/
+│   └── ProductRepository.java
+├── entity/
+│   └── Product.java
+├── dto/
+│   ├── CreateProductRequest.java
+│   ├── UpdateProductRequest.java
+│   └── ProductResponse.java
+├── exception/
+│   ├── ApiError.java
+│   ├── ProductNotFoundException.java
+│   └── GlobalExceptionHandler.java
+└── OnlineStoreApplication.java
+```
+
+## Database Configuration
+
+The application uses PostgreSQL.
+
+Create a database named:
 
 ```sql
 CREATE DATABASE online_store;
 ```
 
-The default local configuration is:
-- URL: `jdbc:postgresql://localhost:5432/online_store`
-- Username: `postgres`
-- Password: `postgres`
+Default configuration:
 
-For a different setup, set environment variables before running:
-
-```bash
-export DB_URL=jdbc:postgresql://localhost:5432/online_store
-export DB_USERNAME=your_username
-export DB_PASSWORD=your_password
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/online_store
+spring.datasource.username=postgres
+spring.datasource.password=postgres
 ```
 
-Windows PowerShell:
+You can override these settings using environment variables:
 
-```powershell
-$env:DB_URL="jdbc:postgresql://localhost:5432/online_store"
-$env:DB_USERNAME="your_username"
-$env:DB_PASSWORD="your_password"
-```
+- `DB_URL`
+- `DB_USERNAME`
+- `DB_PASSWORD`
 
-Hibernate creates/updates the `products` table using `spring.jpa.hibernate.ddl-auto=update`.
+Hibernate automatically creates and updates the database table using the configured JPA settings.
 
-## Run
+## How to Run the Application
 
-From the project root:
+### Prerequisites
+
+- Java 17 or higher
+- Maven
+- PostgreSQL
+
+### Steps
+
+1. Clone the repository.
+2. Create the PostgreSQL database.
+3. Configure the database credentials in `application.properties` or environment variables.
+4. Open a terminal in the project directory.
+5. Run:
 
 ```bash
 mvn clean package
+```
+
+6. Start the application:
+
+```bash
 mvn spring-boot:run
 ```
 
-The API runs at `http://localhost:8080`.
+The API will be available at:
 
-## Product JSON
+`http://localhost:8080`
 
-Example create/update request:
+## REST API Endpoints
+
+| Method | Endpoint | Description | Status |
+|---|---|---|---|
+| GET | `/api/products` | Retrieve all products | 200 |
+| GET | `/api/products/{id}` | Retrieve a product by ID | 200 / 404 |
+| POST | `/api/products` | Create a product | 201 |
+| PUT | `/api/products/{id}` | Update a product | 200 / 404 |
+| DELETE | `/api/products/{id}` | Delete a product | 204 / 404 |
+| GET | `/api/products/category/{category}` | Filter products by category | 200 |
+| GET | `/api/products/search?name=...` | Search products by name | 200 |
+
+## Example Requests
+
+### Create a Product
+
+**POST** `/api/products`
+
+Request:
 
 ```json
 {
@@ -65,137 +125,72 @@ Example create/update request:
 }
 ```
 
-`inStock` is optional and defaults to `true`. The client must not send `id`, `createdAt`, or `updatedAt`; these are server-managed.
+Expected response: `201 Created`
 
-## Endpoints
+The response includes the created product and a `Location` header.
 
-| Method | Endpoint | Description | Success |
-|---|---|---|---|
-| GET | `/api/products` | List all products | 200 |
-| GET | `/api/products/{id}` | Get product by ID | 200 |
-| POST | `/api/products` | Create product | 201 + Location |
-| PUT | `/api/products/{id}` | Replace product | 200 |
-| DELETE | `/api/products/{id}` | Delete product | 204, empty body |
-| GET | `/api/products/category/{category}` | Filter by category (case-insensitive) | 200 |
-| GET | `/api/products/search?name=mouse` | Search name (case-insensitive substring) | 200 |
+### Retrieve All Products
 
-No search matches returns `200 OK` with `[]`.
+**GET** `/api/products`
 
-## curl examples
+Expected response: `200 OK`
 
-Create (expect 201 and `Location: /api/products/{id}`):
+### Retrieve a Product by ID
 
-```bash
-curl -i -X POST http://localhost:8080/api/products \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Wireless Mouse","description":"Bluetooth mouse","price":29.99,"category":"Electronics"}'
-```
+**GET** `/api/products/1`
 
-List:
+Expected response: `200 OK` or `404 Not Found`
 
-```bash
-curl -i http://localhost:8080/api/products
-```
+### Update a Product
 
-Get by ID:
+**PUT** `/api/products/1`
 
-```bash
-curl -i http://localhost:8080/api/products/1
-```
-
-Update (PUT replaces editable fields; omitted `inStock` defaults to true):
-
-```bash
-curl -i -X PUT http://localhost:8080/api/products/1 \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Updated Mouse","description":"Updated description","price":34.50,"category":"Electronics","inStock":true}'
-```
-
-Filter by category:
-
-```bash
-curl -i http://localhost:8080/api/products/category/Electronics
-```
-
-Search by name:
-
-```bash
-curl -i "http://localhost:8080/api/products/search?name=mouse"
-```
-
-Delete (expect 204 and no body):
-
-```bash
-curl -i -X DELETE http://localhost:8080/api/products/1
-```
-
-Missing ID (expect 404):
-
-```bash
-curl -i http://localhost:8080/api/products/9999
-```
-
-Invalid request (expect 400 with field errors):
-
-```bash
-curl -i -X POST http://localhost:8080/api/products \
-  -H "Content-Type: application/json" \
-  -d '{"name":"","price":-10,"category":""}'
-```
-
-## Error response format
-
-All handled errors use the same four fields:
+Request:
 
 ```json
 {
-  "status": 400,
-  "message": "Validation failed",
-  "timestamp": "2026-10-27T10:30:00",
-  "errors": {
-    "name": "must not be blank",
-    "price": "must be greater than 0",
-    "category": "must not be blank"
-  }
+  "name": "Updated Mouse",
+  "description": "Updated description",
+  "price": 34.50,
+  "category": "Electronics",
+  "inStock": true
 }
 ```
 
-For 404, `errors` is `{}`. Error responses do not expose stack traces or SQL details.
+Expected response: `200 OK`
 
-## Validation rules
+### Delete a Product
 
-- `name`: required, 2–100 characters
-- `description`: optional, maximum 1000 characters
-- `price`: required and positive
-- `category`: required
-- `inStock`: optional, defaults to true
+**DELETE** `/api/products/1`
 
-## Architecture
+Expected response: `204 No Content` with an empty body.
 
-- **Controller**: HTTP routing and response status codes only.
-- **Service**: application logic and entity/DTO mapping.
-- **Repository**: Spring Data JPA persistence.
-- **Entity**: database representation of Product.
-- **DTOs**: separate request and response contracts.
-- **GlobalExceptionHandler**: consistent 400/404 error bodies.
+### Filter by Category
 
-## Assumptions
+**GET** `/api/products/category/Electronics`
 
-- Category filtering and name search are case-insensitive.
-- Name search is a substring search.
-- `PUT` replaces all editable fields; omitted optional `inStock` defaults to `true`.
-- Product IDs and timestamps are generated/managed by the server.
-- The database schema is managed by Hibernate for this coursework setup.
+Expected response: `200 OK`
 
-## Final verification checklist
+### Search by Name
 
-- [ ] Java 17 and PostgreSQL are available.
-- [ ] Database `online_store` exists and credentials are correct.
-- [ ] `mvn clean package` succeeds.
-- [ ] Application starts and logs `Started OnlineStoreApplication`.
-- [ ] All seven endpoints tested.
-- [ ] POST returns 201 with Location.
-- [ ] DELETE returns 204 with no body.
-- [ ] Invalid payload returns 400 and field errors.
-- [ ] Missing product returns 404 with the standard error shape.
-- [ ] README commands work from a clean clone.
+**GET** `/api/products/search?name=mouse`
+
+Expected response: `200 OK`
+
+If no products match, the API returns an empty array.
+
+## Validation
+
+The application validates incoming requests:
+
+- Product name is required and must contain 2–100 characters.
+- Description is optional and limited to 1000 characters.
+- Price is required and must be positive.
+- Category is required.
+- `inStock` defaults to `true` if omitted.
+
+Invalid requests return `400 Bad Request`.
+
+## Error Handling
+
+The application uses a global `@RestControllerAdvice
